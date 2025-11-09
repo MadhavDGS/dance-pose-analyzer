@@ -2,6 +2,12 @@
 
 A REST API server that analyzes body movements in dance videos using MediaPipe pose detection. The system processes uploaded videos and returns them with skeleton overlays showing detected body keypoints.
 
+## Live Demo
+
+- **API URL**: https://dance-pose-analyzer.onrender.com
+- **Documentation**: https://dance-pose-analyzer.onrender.com/docs
+- **Health Check**: https://dance-pose-analyzer.onrender.com/health
+
 ## Overview
 
 This project implements a video processing pipeline that accepts dance videos through a REST API, detects human pose keypoints using MediaPipe, and renders skeleton overlays on the processed output.
