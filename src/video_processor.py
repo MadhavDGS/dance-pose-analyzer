@@ -1,6 +1,5 @@
 """
-Video processing module that applies pose detection to video files.
-Handles video I/O and frame-by-frame processing.
+Video processing that applies pose detection frame-by-frame.
 """
 
 import cv2
@@ -10,50 +9,31 @@ from .pose_detector import PoseDetector
 
 
 class VideoProcessor:
-    """
-    Processes dance videos to add pose detection skeleton overlay.
-    """
+    """Processes videos to add pose skeleton overlay."""
     
     def __init__(self, pose_detector: Optional[PoseDetector] = None):
-        """
-        Initialize video processor.
-        
-        Args:
-            pose_detector: PoseDetector instance, creates new one if not provided
-        """
         self.pose_detector = pose_detector or PoseDetector()
         
     def process_video(self, 
                      input_path: str, 
                      output_path: str,
                      show_progress: bool = False) -> Tuple[bool, str]:
-        """
-        Process a video file and add pose skeleton overlay.
+        """Process video and add skeleton overlay. Returns (success, message)."""
         
-        Args:
-            input_path: Path to input video file
-            output_path: Path where output video will be saved
-            show_progress: Whether to print progress information
-            
-        Returns:
-            Tuple of (success: bool, message: str)
-        """
-        # Validate input file exists
         if not os.path.exists(input_path):
             return False, f"Input video not found: {input_path}"
         
-        # Open input video
         cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
             return False, "Failed to open input video"
         
-        # Get video properties
+        # Get video properties from input
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Setup video writer
+        # Create output video writer
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
         
@@ -70,20 +50,16 @@ class VideoProcessor:
                 if not ret:
                     break
                 
-                # Detect pose in current frame
                 landmarks = self.pose_detector.detect_pose(frame)
                 
-                # Draw skeleton if pose detected
                 if landmarks:
                     frame = self.pose_detector.draw_skeleton(frame, landmarks)
                     frames_with_pose += 1
                 
-                # Write processed frame
                 out.write(frame)
-                
                 frame_count += 1
                 
-                # Print progress every 30 frames (roughly every second for 30fps video)
+                # Show progress every 30 frames (~1 second at 30fps)
                 if show_progress and frame_count % 30 == 0:
                     progress = (frame_count / total_frames) * 100
                     print(f"Processing: {progress:.1f}% ({frame_count}/{total_frames} frames)")
@@ -97,7 +73,6 @@ class VideoProcessor:
             cap.release()
             out.release()
         
-        # Calculate detection rate
         detection_rate = (frames_with_pose / frame_count * 100) if frame_count > 0 else 0
         
         success_msg = (f"Video processed successfully. "
@@ -107,15 +82,8 @@ class VideoProcessor:
         return True, success_msg
     
     def get_video_info(self, video_path: str) -> Optional[dict]:
-        """
-        Extract basic information about a video file.
+        """Get video metadata (resolution, fps, duration). Returns None on error."""
         
-        Args:
-            video_path: Path to video file
-            
-        Returns:
-            Dictionary with video info or None if failed
-        """
         if not os.path.exists(video_path):
             return None
         
@@ -135,6 +103,5 @@ class VideoProcessor:
         return info
     
     def cleanup(self):
-        """Release resources"""
         if self.pose_detector:
             self.pose_detector.cleanup()

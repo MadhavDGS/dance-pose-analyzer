@@ -1,6 +1,5 @@
 """
 FastAPI server for dance pose analysis.
-Provides endpoints for video upload and processing.
 """
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -16,14 +15,13 @@ from .video_processor import VideoProcessor
 from .pose_detector import PoseDetector
 
 
-# Initialize FastAPI app
 app = FastAPI(
     title="Dance Pose Analyzer API",
     description="API for analyzing body movements in dance videos using MediaPipe",
     version="1.0.0"
 )
 
-# Add CORS middleware to allow frontend access
+# CORS enabled for development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Setup directories
 BASE_DIR = Path(__file__).parent.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 OUTPUT_DIR = BASE_DIR / "outputs"
@@ -40,17 +37,16 @@ OUTPUT_DIR = BASE_DIR / "outputs"
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# Initialize processor (reused across requests)
+# Single detector instance shared across requests for efficiency
 pose_detector = PoseDetector(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 video_processor = VideoProcessor(pose_detector)
 
-# Store to keep track of processed videos
+# In-memory store for processed videos
 processed_videos = {}
 
 
 @app.get("/")
 async def root():
-    """Root endpoint - redirects to API documentation"""
     return {
         "service": "Dance Pose Analyzer API",
         "version": "1.0.0",
@@ -71,27 +67,15 @@ async def root():
     }
 
 
-
-
-
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {"status": "healthy", "service": "dance-pose-analyzer"}
 
 
 @app.post("/api/analyze")
 async def analyze_video(video: UploadFile = File(...)):
-    """
-    Upload and analyze a dance video.
+    """Upload and analyze a dance video."""
     
-    Args:
-        video: Video file (mp4, avi, mov supported)
-        
-    Returns:
-        JSON with video_id and download URL
-    """
-    # Validate file type
     allowed_extensions = {'.mp4', '.avi', '.mov'}
     file_ext = Path(video.filename).suffix.lower()
     
@@ -106,25 +90,21 @@ async def analyze_video(video: UploadFile = File(...)):
             }
         )
     
-    # Generate unique ID for this video
     video_id = str(uuid.uuid4())
-    
-    # Save uploaded file
     input_path = UPLOAD_DIR / f"{video_id}{file_ext}"
     output_path = OUTPUT_DIR / f"{video_id}_processed.mp4"
     
     try:
-        # Write uploaded file to disk
+        # Save uploaded file
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(video.file, buffer)
         
-        # Get video info before processing
         video_info = video_processor.get_video_info(str(input_path))
         
         if video_info is None:
             raise HTTPException(status_code=400, detail="Invalid video file")
         
-        # Process the video
+        # Process video frame-by-frame
         success, message = video_processor.process_video(
             str(input_path),
             str(output_path),
@@ -134,7 +114,6 @@ async def analyze_video(video: UploadFile = File(...)):
         if not success:
             raise HTTPException(status_code=500, detail=message)
         
-        # Store metadata
         processed_videos[video_id] = {
             "original_filename": video.filename,
             "input_path": str(input_path),
@@ -160,7 +139,6 @@ async def analyze_video(video: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        # Clean up on error
         if input_path.exists():
             input_path.unlink()
         if output_path.exists():
@@ -171,15 +149,8 @@ async def analyze_video(video: UploadFile = File(...)):
 
 @app.get("/api/download/{video_id}")
 async def download_video(video_id: str):
-    """
-    Download processed video.
+    """Download processed video with skeleton overlay."""
     
-    Args:
-        video_id: Unique video identifier
-        
-    Returns:
-        Processed video file
-    """
     if video_id not in processed_videos:
         raise HTTPException(status_code=404, detail="Video not found")
     
@@ -198,15 +169,8 @@ async def download_video(video_id: str):
 
 @app.get("/api/status/{video_id}")
 async def get_status(video_id: str):
-    """
-    Get processing status for a video.
+    """Get processing status and metadata."""
     
-    Args:
-        video_id: Unique video identifier
-        
-    Returns:
-        Status information
-    """
     if video_id not in processed_videos:
         raise HTTPException(status_code=404, detail="Video not found")
     
@@ -215,24 +179,18 @@ async def get_status(video_id: str):
 
 @app.delete("/api/cleanup/{video_id}")
 async def cleanup_video(video_id: str):
-    """
-    Delete processed video files to free up space.
+    """Delete video files to free up storage."""
     
-    Args:
-        video_id: Unique video identifier
-    """
     if video_id not in processed_videos:
         raise HTTPException(status_code=404, detail="Video not found")
     
     video_data = processed_videos[video_id]
     
-    # Remove files
     for path_key in ["input_path", "output_path"]:
         path = Path(video_data[path_key])
         if path.exists():
             path.unlink()
     
-    # Remove from tracking
     del processed_videos[video_id]
     
     return {"message": "Video files cleaned up successfully"}
@@ -240,7 +198,6 @@ async def cleanup_video(video_id: str):
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup resources on shutdown"""
     video_processor.cleanup()
 
 
