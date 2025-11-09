@@ -2,6 +2,14 @@
 
 A cloud-based AI/ML server that analyzes body movements in dance videos using MediaPipe pose detection. The system processes uploaded videos and generates output videos with skeleton overlay showing detected body keypoints and movements in real-time.
 
+## 🚀 Live Demo
+
+**Deployed API**: *To be deployed - see [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md)*
+- **API Documentation**: *(URL will be added after deployment)*
+- **Health Check**: *(URL will be added after deployment)*
+
+> **Note**: Once deployed to Railway/Render/AWS, the live URLs will be updated here.
+
 ## Overview
 
 This project implements a complete video processing pipeline that:
@@ -152,53 +160,34 @@ pytest tests/ --cov=src --cov-report=html
 
 ## Cloud Deployment
 
-### Railway Deployment
+**⚠️ IMPORTANT**: This API is designed for cloud deployment. See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for complete deployment instructions.
 
-1. Install Railway CLI:
-   ```bash
-   npm install -g @railway/cli
-   ```
+### Quick Deploy Options
 
-2. Login and deploy:
-   ```bash
-   railway login
-   railway init
-   railway up
-   ```
+#### Railway (Recommended - 5 minutes)
+1. Push code to GitHub
+2. Connect GitHub to [Railway](https://railway.app/)
+3. Railway auto-detects Dockerfile and deploys
+4. Get URL: `https://your-app.railway.app`
 
-### AWS EC2 Deployment
+#### Render (Free Tier - 10 minutes)
+1. Push code to GitHub
+2. Connect GitHub to [Render](https://render.com/)
+3. Create Web Service with Docker environment
+4. Get URL: `https://your-app.onrender.com`
 
-1. Launch EC2 instance (t2.medium or larger recommended)
-2. SSH into instance
-3. Install Docker:
-   ```bash
-   sudo yum update -y
-   sudo yum install docker -y
-   sudo service docker start
-   ```
-4. Clone repository and build:
-   ```bash
-   git clone <repo-url>
-   cd dance-pose-analyzer
-   sudo docker build -t pose-analyzer .
-   sudo docker run -d -p 80:8000 pose-analyzer
-   ```
+#### AWS EC2 (Full Control - 30 minutes)
+```bash
+# SSH into EC2 instance
+sudo yum install docker git -y
+sudo service docker start
+git clone https://github.com/YOUR_USERNAME/dance-pose-analyzer.git
+cd dance-pose-analyzer
+docker build -t pose-analyzer .
+docker run -d -p 80:8000 pose-analyzer
+```
 
-### Google Cloud Run Deployment
-
-1. Build and push to Container Registry:
-   ```bash
-   gcloud builds submit --tag gcr.io/PROJECT_ID/pose-analyzer
-   ```
-
-2. Deploy to Cloud Run:
-   ```bash
-   gcloud run deploy pose-analyzer \
-     --image gcr.io/PROJECT_ID/pose-analyzer \
-     --platform managed \
-     --region us-central1 \
-     --allow-unauthenticated
-   ```
+**See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for detailed instructions, troubleshooting, and post-deployment testing.**
 
 ## Technical Implementation
 
