@@ -1,22 +1,10 @@
 # Dance Pose Analyzer
 
-A cloud-based AI/ML server that analyzes body movements in dance videos using MediaPipe pose detection. The system processes uploaded videos and generates output videos with skeleton overlay showing detected body keypoints and movements in real-time.
-
-## Live Demo
-
-Deployed API: To be deployed - see CLOUD_DEPLOYMENT.md
-- API Documentation: (URL will be added after deployment)
-- Health Check: (URL will be added after deployment)
-
-Note: Once deployed to Railway/Render/AWS, the live URLs will be updated here.
+A REST API server that analyzes body movements in dance videos using MediaPipe pose detection. The system processes uploaded videos and returns them with skeleton overlays showing detected body keypoints.
 
 ## Overview
 
-This project implements a complete video processing pipeline that:
-- Accepts short-form dance videos through a REST API
-- Detects human pose keypoints using MediaPipe
-- Renders skeleton overlay on the video
-- Returns the processed video with movement visualization
+This project implements a video processing pipeline that accepts dance videos through a REST API, detects human pose keypoints using MediaPipe, and renders skeleton overlays on the processed output.
 
 ## Tech Stack
 
@@ -46,57 +34,35 @@ dance-pose-analyzer/
 └── README.md
 ```
 
-## Setup Instructions
+## Setup
 
 ### Local Development
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd dance-pose-analyzer
-   ```
+```bash
+# Clone and setup
+git clone <repository-url>
+cd dance-pose-analyzer
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-2. **Create virtual environment**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+# Run server
+./start_server.sh
+# or
+venv/bin/python -m uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
+```
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+Access the API at:
+- Documentation: http://localhost:8000/docs
+- Health check: http://localhost:8000/health
 
-4. **Run the server**
-   Recommended: use the provided helper which ensures the project's virtual environment is used:
-   ```bash
-   ./start_server.sh
-   ```
-   Or run directly with the venv python:
-   ```bash
-   venv/bin/python -m uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
-   ```
+### Docker
 
-5. **Access the API**
-   - API Documentation: `http://localhost:8000/docs`
-   - Health Check: `http://localhost:8000/health`
-
-### Docker Deployment
-
-1. **Build the Docker image**
-   ```bash
-   docker build -t dance-pose-analyzer .
-   ```
-
-2. **Run the container**
-   ```bash
-   docker run -d -p 8000:8000 --name pose-analyzer dance-pose-analyzer
-   ```
-
-3. **Check logs**
-   ```bash
-   docker logs pose-analyzer
-   ```
+```bash
+docker build -t dance-pose-analyzer .
+docker run -d -p 8000:8000 --name pose-analyzer dance-pose-analyzer
+docker logs pose-analyzer
+```
 
 ## API Usage
 
@@ -145,49 +111,39 @@ curl -O "http://localhost:8000/api/download/uuid-string"
 curl "http://localhost:8000/api/status/uuid-string"
 ```
 
-## Running Tests
+## Testing
 
 ```bash
-# Run all tests
 pytest tests/ -v
-
-# Run specific test file
 pytest tests/test_pose_detector.py -v
-
-# Run with coverage
 pytest tests/ --cov=src --cov-report=html
 ```
 
 ## Cloud Deployment
 
-IMPORTANT: This API is designed for cloud deployment. See CLOUD_DEPLOYMENT.md for complete deployment instructions.
+Deploy to Railway, Render, or AWS. The Dockerfile handles containerization.
 
-### Quick Deploy Options
-
-#### Railway (Recommended - 5 minutes)
-1. Push code to GitHub
-2. Connect GitHub to [Railway](https://railway.app/)
-3. Railway auto-detects Dockerfile and deploys
-4. Get URL: `https://your-app.railway.app`
-
-#### Render (Free Tier - 10 minutes)
-1. Push code to GitHub
-2. Connect GitHub to [Render](https://render.com/)
-3. Create Web Service with Docker environment
-4. Get URL: `https://your-app.onrender.com`
-
-#### AWS EC2 (Full Control - 30 minutes)
+**Railway**
 ```bash
-# SSH into EC2 instance
+git push
+# Connect to Railway dashboard, auto-deploys from Dockerfile
+```
+
+**Render**
+```bash
+# Create Web Service, select Docker environment
+```
+
+**AWS EC2**
+```bash
+ssh ec2-instance
 sudo yum install docker git -y
 sudo service docker start
-git clone https://github.com/YOUR_USERNAME/dance-pose-analyzer.git
+git clone <repo-url>
 cd dance-pose-analyzer
 docker build -t pose-analyzer .
 docker run -d -p 80:8000 pose-analyzer
 ```
-
-**See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for detailed instructions, troubleshooting, and post-deployment testing.**
 
 ## Technical Implementation
 
@@ -220,304 +176,116 @@ Configuration parameters:
 - Async processing for multiple concurrent requests
 - File cleanup to manage storage
 
-## Thought Process & Technical Decisions
+## Technical Decisions
 
-### Architecture Philosophy
-The project follows a **modular pipeline architecture** with clear separation of concerns:
-- `PoseDetector`: Encapsulates MediaPipe logic and rendering
-- `VideoProcessor`: Handles video I/O and frame-by-frame processing
-- `API Layer`: Exposes functionality via REST endpoints
+### Architecture
+Modular pipeline with three layers:
+- `PoseDetector`: MediaPipe pose detection and rendering
+- `VideoProcessor`: Video I/O and frame-by-frame processing  
+- `API`: REST endpoints with FastAPI
 
-This design enables:
-- Easy testing of individual components
-- Swapping detection algorithms without changing the API
-- Reusing the video processor for batch jobs or CLI tools
+This separation allows testing components independently and swapping algorithms without changing the API.
 
-### Why MediaPipe over OpenPose?
-**OpenPose** was the initial consideration as the gold standard for pose estimation, but **MediaPipe** was chosen for several reasons:
+### MediaPipe vs OpenPose
+MediaPipe was chosen over OpenPose for:
+- Performance: 30-50ms/frame vs 200-300ms
+- Deployment: pip install vs complex CMake build
+- Model size: 20MB vs 200MB
+- Lower cloud compute costs
+- Active maintenance by Google
 
-1. **Performance**: MediaPipe runs at 30-50ms/frame on CPU vs OpenPose's 200-300ms
-2. **Deployment**: MediaPipe has Python pip package vs OpenPose's complex CMake build
-3. **Model Size**: MediaPipe models are ~20MB vs OpenPose's ~200MB
-4. **Cloud Economics**: Faster processing = lower compute costs for cloud deployment
-5. **Maintenance**: Google actively maintains MediaPipe with regular updates
-6. **Production Ready**: Used in Google products (YouTube, Lens) proving reliability
+Trade-off: MediaPipe has 33 landmarks vs OpenPose's 25, but slightly lower accuracy on complex poses. For dance videos with clear body visibility, accuracy is acceptable.
 
-**Trade-off**: MediaPipe detects 33 landmarks vs OpenPose's 25, but has slightly lower accuracy on complex poses. For dance videos with clear body visibility, MediaPipe's accuracy is sufficient.
+### FastAPI vs Flask
+FastAPI provides:
+- Native async for handling concurrent uploads
+- Auto-generated API documentation at /docs
+- Type safety with Pydantic
+- 2-3x faster than Flask
 
-### Why FastAPI over Flask/Django?
-1. **Async Native**: Critical for handling multiple video uploads without blocking
-2. **Auto Documentation**: Swagger UI at `/docs` provides interactive testing
-3. **Type Safety**: Pydantic models catch errors before they reach production
-4. **Performance**: 2-3x faster than Flask due to async architecture
-5. **Modern Python**: Embraces Python 3.10+ features (type hints, async/await)
+### Frame-by-Frame Processing
+Processes one frame at a time instead of loading all frames into memory. This keeps memory usage constant (~100MB) regardless of video length, avoiding out-of-memory errors with 4K videos.
 
-### Why Frame-by-Frame Processing?
-Alternative approaches considered:
-- **Batch Processing**: Load all frames into memory → Rejected due to memory constraints (4K video = 2GB+ RAM)
-- **GPU Batching**: Process multiple frames simultaneously → Saved for future optimization
-- **Frame-by-Frame**: Chosen for memory efficiency and simplicity
+## Security
 
-Current approach allows processing videos of any length with constant memory usage (~100MB).
+### Current State (Development)
+- File type validation: `.mp4`, `.avi`, `.mov` only
+- CORS: `allow_origins=["*"]`
+- No authentication or rate limiting
+- Files stored indefinitely in `uploads/`
 
-### Docker Multi-Stage Build Strategy
-The Dockerfile uses a single-stage build but could be optimized:
-```
-Current: Python 3.10 slim (500MB final image)
-Future: Multi-stage with builder pattern (300MB possible)
-```
-Trade-off: Simplicity vs image size. For cloud deployment with container registries, 500MB is acceptable.
+### Production Requirements
+- Add JWT authentication for API endpoints
+- Implement rate limiting (e.g., 5 uploads/minute per IP)
+- Enforce file size limits (100MB max)
+- Validate video codecs with `python-magic`
+- Use signed URLs for file downloads (S3/GCS)
+- Auto-delete uploads after 24 hours
+- Restrict CORS to specific domains
+- Deploy with HTTPS and HSTS headers
+- Sanitize error messages to avoid exposing internal paths
+- Container scanning for vulnerabilities
+- Log API requests for monitoring
 
-## Security Considerations
+## Alignment with Callus
 
-### Current Implementation
-1. **File Type Validation**: Only `.mp4`, `.avi`, `.mov` allowed
-2. **CORS Enabled**: `allow_origins=["*"]` for development
-3. **No Authentication**: Public API for demo purposes
-4. **No Rate Limiting**: Unlimited requests per IP
-5. **File Storage**: Uploaded videos stored indefinitely in `uploads/`
+Callus connects global talent through short-form content. This pose analysis system supports that by:
 
-### Production Hardening Required
+### Talent Assessment
+Traditional dance evaluation requires physical judges and subjective scoring. This API enables:
+- Global competitions without travel costs
+- Objective movement metrics
+- Instant feedback on uploaded dance videos
 
-#### 1. Authentication & Authorization
-```python
-# Add JWT token validation
-from fastapi.security import HTTPBearer
-security = HTTPBearer()
+When integrated with Callus, the API could score technical execution, highlight best frames, and suggest improvements.
 
-@app.post("/api/analyze")
-async def analyze_video(
-    video: UploadFile = File(...),
-    token: str = Depends(security)
-):
-    verify_jwt_token(token)  # Validate user identity
-```
+### Content Discovery
+The 33 skeleton keypoints enable movement-based features:
+- Search videos by movement type ("find dancers with high kicks")
+- Auto-tag dance styles (hip-hop, ballet, contemporary)
+- Verify challenge completions
 
-#### 2. Rate Limiting
-```python
-# Add per-IP rate limits
-from slowapi import Limiter
-limiter = Limiter(key_func=get_remote_address)
+### Scalability
+The architecture handles growth:
+- FastAPI async supports 1000+ concurrent uploads
+- Docker enables horizontal scaling
+- Stateless design allows load balancing across regions
+- CPU-based processing keeps costs low ($60/month for 10,000 videos/day on AWS)
 
-@limiter.limit("5/minute")
-@app.post("/api/analyze")
-async def analyze_video(...):
-```
+### Creator Experience
+Processing speed matters for engagement:
+- 30-50ms per frame = 5-second video processed in 7 seconds
+- Creators get immediate feedback and iterate faster
 
-#### 3. File Size Limits
-```python
-# Current: No limit (DoS vulnerability)
-# Production: Enforce maximum size
-MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+### Data for Recruiters
+Quantifiable metrics help brands find talent:
+- Movement precision scores
+- Pose detection consistency rates
+- Body control stability metrics
 
-@app.post("/api/analyze")
-async def analyze_video(video: UploadFile = File(...)):
-    if video.size > MAX_FILE_SIZE:
-        raise HTTPException(413, "File too large")
-```
-
-#### 4. Content Validation
-```python
-# Add video codec validation
-import magic
-mime = magic.Magic(mime=True)
-file_mime = mime.from_file(input_path)
-if file_mime not in ['video/mp4', 'video/avi', 'video/quicktime']:
-    raise HTTPException(400, "Invalid video format")
-```
-
-#### 5. Secure File Storage
-- **Current Risk**: Files stored with predictable UUIDs
-- **Solution**: Use signed URLs with expiration (AWS S3, GCS)
-- **Cleanup**: Auto-delete files after 24 hours
-
-#### 6. CORS Restrictions
-```python
-# Production: Whitelist specific domains
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://callus.com", "https://app.callus.com"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-```
-
-#### 7. HTTPS Only
-- Deploy behind reverse proxy (nginx/Caddy) with TLS certificates
-- Redirect HTTP → HTTPS
-- Use HSTS headers
-
-#### 8. Error Message Sanitization
-```python
-# Current: Exposes internal paths
-raise HTTPException(500, f"Processing failed: {str(e)}")
-
-# Production: Generic messages
-logger.error(f"Processing failed: {str(e)}")
-raise HTTPException(500, "Video processing failed. Please try again.")
-```
-
-### Infrastructure Security
-- **Container Scanning**: Run `docker scan` to detect vulnerabilities
-- **Secrets Management**: Use environment variables, not hardcoded values
-- **Network Isolation**: Run containers in private networks
-- **Monitoring**: Log all API requests with IP addresses and file metadata
-
-## How This Fits Callus's Vision
-
-Callus aims to **connect global talents through engaging, short-form content**. This pose analysis system directly supports that mission:
-
-### 1. **Democratizing Talent Assessment**
-Traditional dance evaluation requires:
-- Physical presence of judges
-- Subjective human scoring
-- Limited reach (local competitions only)
-
-**This system enables**:
-- Global competitions without travel
-- Objective movement metrics (symmetry, speed, range of motion)
-- Instant feedback for creators uploading dance videos
-
-**Real-world application**: When a user uploads a dance to Callus's platform, this API could automatically:
-- Score technical execution (did they hit the choreography?)
-- Highlight best moments (frames with highest pose confidence)
-- Suggest improvements ("left arm extension could be wider")
-
-### 2. **Content Discovery Through Movement**
-Callus's short-form video platform needs smart content recommendations. Pose analysis unlocks:
-- **Movement-based search**: "Find me dancers with high kicks like this video"
-- **Style classification**: Automatically tag videos as hip-hop, ballet, contemporary
-- **Challenge verification**: Detect if users actually completed the #CallousChallenge dance moves
-
-**Technical foundation**: The skeleton keypoints extracted here (33 landmarks × XYZ coordinates) are perfect inputs for ML models that classify dance styles or compare movements between videos.
-
-### 3. **Scalable Infrastructure for Global Growth**
-Callus targets **global creators** uploading thousands of videos daily. This project's architecture scales:
-
-| Component | Scalability Feature |
-|-----------|---------------------|
-| **FastAPI** | Async handles 1000+ concurrent uploads |
-| **Docker** | Horizontal scaling: spin up 100 containers in seconds |
-| **Stateless API** | No session storage = load balance across regions |
-| **Cloud-agnostic** | Deploy to AWS/GCP/Azure based on regional user demand |
-
-**Cost efficiency**: MediaPipe runs on CPU (no expensive GPUs needed), making it economical to process millions of videos. At $0.05/compute-hour (AWS t3.medium), processing 10,000 videos/day costs ~$60/month.
-
-### 4. **Real-Time Feedback for Creators**
-Callus creators need **instant validation** that their content will perform well. Processing speed matters:
-- **Current**: 30-50ms per frame = 5-second video processed in 7 seconds
-- **User experience**: Upload → see skeleton overlay in < 10 seconds
-- **Engagement**: Creators iterate faster, upload more content
-
-**Future integration**: Embed this API in Callus's mobile app: "Record dance → See real-time skeleton overlay → Auto-share to feed"
-
-### 5. **Data-Driven Talent Scouting**
-For Callus to become the **"LinkedIn for creative talent"**, it needs quantifiable skills data:
-- Traditional: "I'm a good dancer" (unverifiable)
-- **With pose analysis**: "I maintain 95%+ pose detection across 50 videos, with 180° leg extensions"
-
-**Recruiter value**: Brands searching for talent on Callus could filter by:
-- Movement precision score
-- Video consistency (pose detection rate)
-- Body control metrics (how stable are keypoints frame-to-frame?)
-
-### Vision Alignment Summary
-| Callus Goal | This Project's Contribution |
-|-------------|----------------------------|
-| Connect global talents | Cloud API accessible worldwide, no geographic barriers |
-| Short-form engagement | Fast processing keeps users in-app, not waiting |
-| Discover hidden talent | Objective movement metrics surface skilled creators |
-| Scalable platform | Docker + stateless design handles viral growth |
-| Creator tools | Skeleton overlay adds production value to videos |
-
-**The bigger picture**: This pose analysis system isn't just a video processor—it's the foundation for **AI-powered talent discovery** at scale. As Callus grows, this API could evolve into a full "Movement Intelligence Platform" that understands, scores, and recommends dance content globally.
+This system provides the foundation for movement-based content discovery and talent assessment at scale.
 
 ## Evaluation Metrics
 
-This system provides several metrics to evaluate pose detection quality and video processing performance:
-
-### 1. Pose Detection Rate
-```python
-# Calculated per video
+### Pose Detection Rate
+```
 detection_rate = (frames_with_pose_detected / total_frames) * 100
 ```
+- Good: >90%
+- Acceptable: 70-90%
+- Poor: <70%
 
-**Example output**: `"Pose detected in 145 frames (96.7%)"`
+### Processing Performance
+- Speed: 20-33 FPS on CPU (30-50ms per frame)
+- Memory: ~100MB constant usage
+- Confidence: Each of 33 landmarks has 0.0-1.0 score (threshold: 0.5)
 
-- **Good performance**: >90% detection rate
-- **Acceptable**: 70-90% (possibly due to camera angles, occlusion)
-- **Poor**: <70% (consider better lighting, camera positioning)
+### Video Metrics
+API returns frame count, dimensions, FPS, and duration. Processing logs include upload time, processing time, memory peak, and file sizes.
 
-### 2. Processing Speed
-- **Frames per second (FPS)**: How many frames processed per second
-- **Average**: 20-33 FPS on CPU (30-50ms per frame)
-- **With GPU**: Can reach 60+ FPS
-
-### 3. Pose Confidence Score
-Each detected landmark has a confidence score (0.0 to 1.0):
-- MediaPipe reports confidence for each of the 33 landmarks
-- Threshold: `min_detection_confidence=0.5` (configurable)
-- Higher confidence = more reliable keypoint detection
-
-### 4. Video Quality Metrics
-Returned in API response:
-```json
-{
-  "video_info": {
-    "width": 1920,
-    "height": 1080,
-    "fps": 30,
-    "frame_count": 150,
-    "duration_seconds": 5.0
-  }
-}
-```
-
-### 5. System Performance
-Available via logs:
-- **Upload time**: Time to receive and save video
-- **Processing time**: Total time from upload to completion
-- **Memory usage**: Peak RAM during processing
-- **Storage**: Input/output file sizes
-
-### Example Evaluation Report
-
-For a typical 5-second dance video (1920x1080, 30fps):
-
-| Metric | Value | Status |
-|--------|-------|--------|
-| Total Frames | 150 | - |
-| Poses Detected | 145 | 96.7% |
-| Processing Time | 7.5 seconds | Acceptable |
-| FPS | 20 frames/sec | Good |
-| Output File Size | 12.3 MB | Reasonable |
-| Memory Peak | 180 MB | Efficient |
-
-### Monitoring in Production
-
-Add these endpoints for evaluation (future enhancement):
-
-```python
-@app.get("/api/metrics")
-async def get_metrics():
-    return {
-        "total_videos_processed": 1234,
-        "average_detection_rate": 94.2,
-        "average_processing_time_seconds": 8.5,
-        "uptime_hours": 720
-    }
-```
-
-## Future Enhancements
-
-- [ ] GPU acceleration for faster processing
-- [ ] Batch video processing
-- [ ] Advanced movement analysis metrics (speed, range of motion, symmetry)
-- [ ] Comparison between multiple dancers
-- [ ] Real-time streaming support
-- [ ] Machine learning for dance style classification
-- [ ] Integration with mobile apps
-- [ ] Metrics dashboard for monitoring pose detection quality
+Example (5-second 1080p video):
+- Detection rate: 96.7% (145/150 frames)
+- Processing time: 7.5 seconds
+- Memory peak: 180 MB
 
 
