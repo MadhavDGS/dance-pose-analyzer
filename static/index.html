@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dance Pose Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .upload-form {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f4f8;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .download-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #48bb78;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .info {
+            background: #bee3f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕺 Dance Pose Analyzer</h1>
+        <p class="subtitle">Upload a dance video to detect body poses and add skeleton overlay</p>
+        
+        <div class="info">
+            <strong>How it works:</strong>
+            <ol>
+                <li>Upload your dance video (MP4, AVI, or MOV)</li>
+                <li>AI analyzes body movements frame-by-frame</li>
+                <li>Download video with skeleton overlay</li>
+            </ol>
+        </div>
+
+        <div class="upload-form">
+            <h3>Upload Dance Video</h3>
+            <input type="file" id="videoFile" accept="video/mp4,video/avi,video/mov">
+            <br>
+            <button onclick="uploadVideo()">Analyze Video</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="text-align: center;">Processing your video... This may take a moment.</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <h3>✅ Processing Complete!</h3>
+            <p id="resultMessage"></p>
+            <a href="#" id="downloadLink" class="download-link">Download Processed Video</a>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #e2e8f0;">
+        
+        <p style="text-align: center; color: #666;">
+            <small>
+                Need API access? Check <a href="/docs" style="color: #667eea;">API Documentation</a><br>
+                Or test via command line: <code>curl -X POST "http://localhost:8000/api/analyze" -F "video=@dance.mp4"</code>
+            </small>
+        </p>
+    </div>
+
+    <script>
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Please select a video file first');
+                return;
+            }
+
+            // Hide previous results
+            document.getElementById('result').classList.remove('show');
+            document.getElementById('error').classList.remove('show');
+            
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+
+            const formData = new FormData();
+            formData.append('video', file);
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                // Hide loading
+                document.getElementById('loading').classList.remove('show');
+
+                if (response.ok) {
+                    showResult(data);
+                } else {
+                    showError(data.detail || 'Processing failed');
+                }
+            } catch (error) {
+                document.getElementById('loading').classList.remove('show');
+                showError('Network error: ' + error.message);
+            }
+        }
+
+        function showResult(data) {
+            const resultDiv = document.getElementById('result');
+            const messageP = document.getElementById('resultMessage');
+            const downloadLink = document.getElementById('downloadLink');
+
+            messageP.innerHTML = `
+                <strong>Video ID:</strong> ${data.video_id}<br>
+                <strong>Frames Processed:</strong> ${data.original_video.frame_count}<br>
+                <strong>Detection Rate:</strong> ${data.processing_info}<br>
+                <strong>Resolution:</strong> ${data.original_video.width}x${data.original_video.height}
+            `;
+
+            downloadLink.href = data.download.url;
+            resultDiv.classList.add('show');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '❌ Error: ' + message;
+            errorDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
