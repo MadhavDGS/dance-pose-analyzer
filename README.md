@@ -2,13 +2,13 @@
 
 A cloud-based AI/ML server that analyzes body movements in dance videos using MediaPipe pose detection. The system processes uploaded videos and generates output videos with skeleton overlay showing detected body keypoints and movements in real-time.
 
-## 🚀 Live Demo
+## Live Demo
 
-**Deployed API**: *To be deployed - see [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md)*
-- **API Documentation**: *(URL will be added after deployment)*
-- **Health Check**: *(URL will be added after deployment)*
+Deployed API: To be deployed - see CLOUD_DEPLOYMENT.md
+- API Documentation: (URL will be added after deployment)
+- Health Check: (URL will be added after deployment)
 
-> **Note**: Once deployed to Railway/Render/AWS, the live URLs will be updated here.
+Note: Once deployed to Railway/Render/AWS, the live URLs will be updated here.
 
 ## Overview
 
@@ -160,7 +160,7 @@ pytest tests/ --cov=src --cov-report=html
 
 ## Cloud Deployment
 
-**⚠️ IMPORTANT**: This API is designed for cloud deployment. See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for complete deployment instructions.
+IMPORTANT: This API is designed for cloud deployment. See CLOUD_DEPLOYMENT.md for complete deployment instructions.
 
 ### Quick Deploy Options
 
@@ -488,11 +488,11 @@ For a typical 5-second dance video (1920x1080, 30fps):
 | Metric | Value | Status |
 |--------|-------|--------|
 | Total Frames | 150 | - |
-| Poses Detected | 145 | ✅ 96.7% |
-| Processing Time | 7.5 seconds | ✅ Acceptable |
-| FPS | 20 frames/sec | ✅ Good |
-| Output File Size | 12.3 MB | ✅ Reasonable |
-| Memory Peak | 180 MB | ✅ Efficient |
+| Poses Detected | 145 | 96.7% |
+| Processing Time | 7.5 seconds | Acceptable |
+| FPS | 20 frames/sec | Good |
+| Output File Size | 12.3 MB | Reasonable |
+| Memory Peak | 180 MB | Efficient |
 
 ### Monitoring in Production
 
@@ -520,10 +520,4 @@ async def get_metrics():
 - [ ] Integration with mobile apps
 - [ ] Metrics dashboard for monitoring pose detection quality
 
-## License
 
-MIT License - See LICENSE file for details
-
-## Author
-
-Sree Madhav - AI/ML Engineer

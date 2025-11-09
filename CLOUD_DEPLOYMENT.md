@@ -12,7 +12,7 @@ This guide walks you through deploying the Dance Pose Analyzer to production clo
 
 ## Railway Deployment (Recommended)
 
-**Why Railway?** Free tier includes 500 hours/month, automatic HTTPS, GitHub integration, zero config needed.
+Why Railway? Free tier includes 500 hours/month, automatic HTTPS, GitHub integration, zero config needed.
 
 ### Prerequisites
 - GitHub account
@@ -66,7 +66,7 @@ open https://your-app.railway.app/docs
 
 ## Render Deployment
 
-**Why Render?** Free tier includes 750 hours/month, similar to Railway but with more manual config.
+Why Render? Free tier includes 750 hours/month, similar to Railway but with more manual config.
 
 ### Steps
 
@@ -110,7 +110,7 @@ services:
 
 ## AWS EC2 Deployment
 
-**Why AWS?** Full control, production-grade, but requires more setup.
+Why AWS? Full control, production-grade, but requires more setup.
 
 ### Prerequisites
 - AWS account
@@ -336,8 +336,8 @@ Before going to production:
 
 ## Next Steps
 
-1. ✅ Deploy to your chosen platform
-2. ✅ Test all endpoints with real videos
-3. ✅ Update main README.md with deployment URL
-4. ✅ Record demo video showing deployed API
-5. ✅ Submit assignment with GitHub link + live URL
+1. Deploy to your chosen platform
+2. Test all endpoints with real videos
+3. Update main README.md with deployment URL
+4. Record demo video showing deployed API
+5. Submit assignment with GitHub link + live URL
